@@ -5193,7 +5193,7 @@ void ECDH::SetPublicKey(const FunctionCallbackInfo<Value>& args) {
 
 
 bool ECDH::IsKeyValidForCurve(const BIGNUM* private_key) {
-  ASSERT_NE(group_, nullptr);
+  CHECK_NE(group_, nullptr);
   CHECK_NE(private_key, nullptr);
   // Private keys must be in the range [1, n-1].
   // Ref: Section 3.2.1 - http://www.secg.org/sec1-v2.pdf
@@ -5424,8 +5424,13 @@ void PBKDF2(const FunctionCallbackInfo<Value>& args) {
   if (args[5]->IsFunction()) {
     obj->Set(env->ondone_string(), args[5]);
 
-    if (env->in_domain())
-      obj->Set(env->domain_string(), env->domain_array()->Get(0));
+    if (env->in_domain()) {
+      obj->Set(env->context(),
+               env->domain_string(),
+               env->domain_array()->Get(env->context(), 0).ToLocalChecked())
+          .FromJust();
+    }
+
     uv_queue_work(env->event_loop(),
                   req->work_req(),
                   PBKDF2Request::Work,
@@ -5627,8 +5632,13 @@ void RandomBytes(const FunctionCallbackInfo<Value>& args) {
   if (args[1]->IsFunction()) {
     obj->Set(env->ondone_string(), args[1]);
 
-    if (env->in_domain())
-      obj->Set(env->domain_string(), env->domain_array()->Get(0));
+    if (env->in_domain()) {
+      obj->Set(env->context(),
+               env->domain_string(),
+               env->domain_array()->Get(env->context(), 0).ToLocalChecked())
+          .FromJust();
+    }
+
     uv_queue_work(env->event_loop(),
                   req->work_req(),
                   RandomBytesWork,
@@ -5673,7 +5683,8 @@ void RandomBytesBuffer(const FunctionCallbackInfo<Value>& args) {
     if (env->in_domain()) {
       obj->Set(env->context(),
                env->domain_string(),
-               env->domain_array()->Get(0)).FromJust();
+               env->domain_array()->Get(env->context(), 0).ToLocalChecked())
+          .FromJust();
     }
 
     uv_queue_work(env->event_loop(),
